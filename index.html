@@ -1,0 +1,1651 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LaundryKu 3D - Aplikasi Laundry Modern</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            300: '#7dd3fc',
+                            500: '#0284c7',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #e0f2fe;
+            overflow-x: hidden;
+            touch-action: manipulation;
+        }
+        /* Live Animated Canvas Wallpaper */
+        #live-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
+        /* Glassmorphism & 3D Clay Cards */
+        .card-3d {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            border-radius: 22px;
+            box-shadow: 
+                0 12px 30px -8px rgba(14, 165, 233, 0.18),
+                0 4px 12px rgba(0, 0, 0, 0.03),
+                inset 0 2px 4px rgba(255, 255, 255, 0.9);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card-3d:active {
+            transform: scale(0.985);
+        }
+        /* 3D Interactive Buttons */
+        .btn-3d {
+            position: relative;
+            background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+            color: #ffffff;
+            font-weight: 700;
+            border-radius: 16px;
+            box-shadow: 
+                0 6px 0 #0369a1,
+                0 10px 18px rgba(2, 132, 199, 0.35);
+            transition: all 0.15s ease;
+        }
+        .btn-3d:active {
+            top: 4px;
+            box-shadow: 
+                0 2px 0 #0369a1,
+                0 4px 8px rgba(2, 132, 199, 0.2);
+        }
+        .btn-3d-secondary {
+            background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+            color: #334155;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 0 #cbd5e1, 0 6px 12px rgba(0, 0, 0, 0.05);
+        }
+        .btn-3d-secondary:active {
+            top: 3px;
+            box-shadow: 0 1px 0 #cbd5e1, 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        .btn-3d-danger {
+            background: linear-gradient(135deg, #f87171 0%, #dc2626 100%);
+            color: white;
+            box-shadow: 0 5px 0 #991b1b, 0 8px 15px rgba(220, 38, 38, 0.3);
+        }
+        .btn-3d-danger:active {
+            top: 3px;
+            box-shadow: 0 2px 0 #991b1b;
+        }
+        /* Custom Scrollbar for horizontal navbar */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Badge 3D styling */
+        .badge-3d {
+            box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.6), 0 2px 6px rgba(0,0,0,0.08);
+        }
+
+        /* Modal backdrop */
+        .modal-blur {
+            backdrop-filter: blur(8px);
+            background: rgba(15, 23, 42, 0.45);
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 pb-28 relative">
+
+    <canvas idlive-bg" id="live-bg"></canvas>
+
+    <!-- MAIN APP CONTAINER -->
+    <div class="relative z-10 max-w-md mx-auto px-4 pt-4 min-h-screen flex flex-col">
+
+        <!-- HEADER TOP BAR -->
+        <header class="card-3d p-4 mb-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-sky-400 to-blue-600 flex items-center justify-center shadow-md shadow-sky-300 text-white font-extrabold text-xl border-2 border-white">
+                    🧺
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-lg leading-none text-slate-800 tracking-tight" id="header-outlet-name">LAUNDRY KU 3D</h1>
+                    <p class="text-xs text-sky-600 font-semibold mt-1 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span id="header-date">...</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- CLOUD CONNECTION STATUS LED INDICATOR -->
+            <div class="flex flex-col items-end cursor-pointer" onclick="switchTab('pengaturan')" title="Status Cloud Sync">
+                <div class="flex items-center gap-1.5 bg-slate-100/90 px-3 py-1.5 rounded-full border border-slate-200/80 shadow-inner">
+                    <span id="cloud-led" class="w-3 h-3 rounded-full bg-emerald-500 shadow-sm transition-all duration-300"></span>
+                    <span id="cloud-status-text" class="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Terhubung</span>
+                </div>
+                <span class="text-[9px] text-slate-400 font-medium mt-0.5">Google Sheets</span>
+            </div>
+        </header>
+
+        <!-- APP CONTENT PAGES -->
+        <main id="app-viewport" class="flex-1 pb-6">
+            <!-- Dynamic view content renders here -->
+        </main>
+    </div>
+
+    <!-- BOTTOM SCROLLABLE NAVIGATION BAR -->
+    <nav class="fixed bottom-3 left-0 right-0 z-40 px-3 max-w-md mx-auto">
+        <div class="card-3d p-2 bg-white/95 border border-sky-100 shadow-2xl rounded-2xl">
+            <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 px-1" id="nav-container">
+                <button onclick="switchTab('dasbor')" id="nav-dasbor" class="nav-item flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all">
+                    <span class="text-lg">📊</span> Dasbor
+                </button>
+                <button onclick="switchTab('tambah_transaksi')" id="nav-tambah_transaksi" class="nav-item flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all">
+                    <span class="text-lg">➕</span> Tambah Transaksi
+                </button>
+                <button onclick="switchTab('pekerjaan')" id="nav-pekerjaan" class="nav-item flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all">
+                    <span class="text-lg">🧼</span> Pekerjaan
+                </button>
+                <button onclick="switchTab('layanan')" id="nav-layanan" class="nav-item flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all">
+                    <span class="text-lg">🏷️</span> Layanan
+                </button>
+                <button onclick="switchTab('pelanggan')" id="nav-pelanggan" class="nav-item flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all">
+                    <span class="text-lg">👥</span> Pelanggan
+                </button>
+                <button onclick="switchTab('laporan')" id="nav-laporan" class="nav-item flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all">
+                    <span class="text-lg">📈</span> Laporan
+                </button>
+                <button onclick="switchTab('pengaturan')" id="nav-pengaturan" class="nav-item flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all">
+                    <span class="text-lg">⚙️️</span> Pengaturan
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- GLOBAL MODAL & TOAST UI CONTAINER -->
+    <div id="modal-container" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-blur hidden">
+        <div id="modal-content" class="card-3d bg-white p-5 w-full max-w-sm max-h-[85vh] overflow-y-auto shadow-2xl border-2 border-sky-100"></div>
+    </div>
+    <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 hidden px-5 py-3 rounded-2xl text-xs font-extrabold text-white shadow-xl transition-all duration-300"></div>
+
+    <script>
+        const APP_STORAGE_KEY = 'LAUNDRY_3D_DATA_STORE_V1';
+        
+        let state = {
+            currentTab: 'dasbor',
+            selectedJobFilter: 'semua',
+            cloudUrl: '',
+            syncStatus: 'connected', // connected (green), syncing (yellow), disconnected (red)
+            outlet: {
+                name: 'LAUNDRY KU 3D',
+                address: 'Jl. Estetik No. 123',
+                phone: '081234567890',
+                cashier: 'Admin Utama',
+                perfume: 'Mawar Premium',
+                footerMsg: 'Terima Kasih!\nBarang yang tidak diambil >1 bulan bukan tanggung jawab kami.'
+            },
+            printConfig: {
+                showOutletName: true,
+                showAddress: true,
+                showPhone: true,
+                showServices: true,
+                showCashier: true,
+                showPerfume: true,
+                showDetails: true
+            },
+            services: [
+                { id: 'S1', name: 'Cuci Komplit Kiloan', category: 'Kiloan', unit: 'kg', est: '1 Hari', minWeight: 2, price: 7000 },
+                { id: 'S2', name: 'Bed Cover Besar', category: 'Satuan', unit: 'pcs', est: '1 Hari', minWeight: 1, price: 25000 },
+                { id: 'S3', name: 'Cuci Express 6 Jam', category: 'Express', unit: 'kg', est: '6 Jam', minWeight: 2, price: 12000 },
+                { id: 'S4', name: 'Sepatu Sneaker Treatment', category: 'Threatment', unit: 'pcs', est: '2 Hari', minWeight: 1, price: 35000 }
+            ],
+            customers: [
+                { id: 'C1', name: 'aksa', phone: '081299887766' },
+                { id: 'C2', name: 'Budi Santoso', phone: '085711223344' },
+                { id: 'C3', name: 'Citra Dewi', phone: '' }
+            ],
+            transactions: [
+                {
+                    id: '17907686',
+                    date: '2026-09-30T18:43:00',
+                    finishDate: '2026-09-31T18:43:00',
+                    customerName: 'aksa',
+                    customerPhone: '081299887766',
+                    items: [{ serviceId: 'S2', serviceName: 'Bed Cover Besar', qty: 1, price: 25000, subtotal: 25000 }],
+                    total: 25000,
+                    paid: 13450,
+                    remaining: 11550,
+                    change: 0,
+                    paymentMethod: 'Tunai',
+                    paymentStatus: 'DP', // Lunas, DP, Belum Lunas
+                    jobStatus: 'antrian', // antrian, proses, siap ambil, selesai, batal
+                    cashier: 'Admin Utama'
+                }
+            ]
+        };
+
+        function initLiveWallpaper() {
+            const canvas = document.getElementById('live-bg');
+            const ctx = canvas.getContext('2d');
+            let width, height;
+            let bubbles = [];
+
+            function resize() {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            for (let i = 0; i < 18; i++) {
+                bubbles.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    radius: Math.random() * 40 + 15,
+                    vx: (Math.random() - 0.5) * 0.4,
+                    vy: (Math.random() - 0.5) * 0.4,
+                    alpha: Math.random() * 0.35 + 0.15
+                });
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, width, height);
+
+                // Dynamic background radial light gradient
+                const grad = ctx.createLinearGradient(0, 0, width, height);
+                grad.addColorStop(0, '#e0f2fe');
+                grad.addColorStop(0.5, '#f0f9ff');
+                grad.addColorStop(1, '#bae6fd');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, width, height);
+
+                // Render soft floating 3D ambient bubbles
+                bubbles.forEach(b => {
+                    b.x += b.vx;
+                    b.y += b.vy;
+
+                    if (b.x < -50) b.x = width + 50;
+                    if (b.x > width + 50) b.x = -50;
+                    if (b.y < -50) b.y = height + 50;
+                    if (b.y > height + 50) b.y = -50;
+
+                    ctx.beginPath();
+                    const bGrad = ctx.createRadialGradient(b.x - b.radius*0.3, b.y - b.radius*0.3, b.radius*0.1, b.x, b.y, b.radius);
+                    bGrad.addColorStop(0, `rgba(255, 255, 255, ${b.alpha + 0.2})`);
+                    bGrad.addColorStop(0.7, `rgba(186, 230, 253, ${b.alpha})`);
+                    bGrad.addColorStop(1, `rgba(56, 189, 248, 0)`);
+                    
+                    ctx.fillStyle = bGrad;
+                    ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+
+                requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        function loadLocalData() {
+            try {
+                const saved = localStorage.getItem(APP_STORAGE_KEY);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    state = { ...state, ...parsed };
+                }
+            } catch (e) {
+                console.error("Failed loading local storage", e);
+            }
+        }
+
+        function saveLocalData() {
+            try {
+                localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state));
+            } catch (e) {
+                console.error("Failed saving local data", e);
+            }
+        }
+
+        function updateCloudLed(statusText, colorClass) {
+            state.syncStatus = statusText;
+            const led = document.getElementById('cloud-led');
+            const txt = document.getElementById('cloud-status-text');
+            if (led && txt) {
+                led.className = `w-3 h-3 rounded-full ${colorClass} shadow-sm transition-all duration-300`;
+                txt.textContent = statusText === 'connected' ? 'Terhubung' : (statusText === 'syncing' ? 'Proses...' : 'Terputus');
+            }
+        }
+
+        async function syncToCloudBackground() {
+            if (!state.cloudUrl || state.cloudUrl.trim() === '') return;
+            updateCloudLed('syncing', 'bg-amber-400 animate-ping');
+            try {
+                const payload = JSON.stringify(state);
+                await fetch(state.cloudUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: payload
+                });
+                updateCloudLed('connected', 'bg-emerald-500');
+            } catch (err) {
+                console.error("Cloud post error:", err);
+                updateCloudLed('disconnected', 'bg-rose-500');
+            }
+        }
+
+        async function fetchFromCloudBackground() {
+            if (!state.cloudUrl || state.cloudUrl.trim() === '') return;
+            updateCloudLed('syncing', 'bg-amber-400 animate-ping');
+            try {
+                const res = await fetch(state.cloudUrl);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.transactions) {
+                        state = { ...state, ...data };
+                        saveLocalData();
+                        renderCurrentTab();
+                    }
+                    updateCloudLed('connected', 'bg-emerald-500');
+                } else {
+                    updateCloudLed('disconnected', 'bg-rose-500');
+                }
+            } catch (e) {
+                console.error("Cloud fetch error:", e);
+                updateCloudLed('disconnected', 'bg-rose-500');
+            }
+        }
+
+        function autoSaveAndSync() {
+            saveLocalData();
+            syncToCloudBackground();
+        }
+
+        function formatRp(num) {
+            return 'Rp ' + (Number(num) || 0).toLocaleString('id-ID');
+        }
+
+        function formatDateReadable(isoStr) {
+            if (!isoStr) return '-';
+            const d = new Date(isoStr);
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
+            return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}, ${String(d.getHours()).padStart(2,'0')}.${String(d.getMinutes()).padStart(2,'0')}`;
+        }
+
+        function isToday(isoStr) {
+            if (!isoStr) return false;
+            const d = new Date(isoStr);
+            const today = new Date();
+            return d.getDate() === today.getDate() &&
+                   d.getMonth() === today.getMonth() &&
+                   d.getFullYear() === today.getFullYear();
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `fixed top-5 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl text-xs font-extrabold text-white shadow-xl transition-all duration-300 ${
+                type === 'danger' ? 'bg-gradient-to-r from-red-500 to-rose-600' : 'bg-gradient-to-r from-emerald-500 to-teal-600'
+            }`;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 2500);
+        }
+
+        function closeModal() {
+            document.getElementById('modal-container').classList.add('hidden');
+        }
+
+        function openModal(htmlContent) {
+            const content = document.getElementById('modal-content');
+            content.innerHTML = htmlContent;
+            document.getElementById('modal-container').classList.remove('hidden');
+        }
+
+        function switchTab(tabKey) {
+            state.currentTab = tabKey;
+            
+            // Highlight nav bar button
+            document.querySelectorAll('.nav-item').forEach(btn => {
+                btn.className = "nav-item flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all text-slate-600 hover:bg-sky-50";
+            });
+            const activeNav = document.getElementById(`nav-${tabKey}`);
+            if (activeNav) {
+                activeNav.className = "nav-item flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all bg-gradient-to-r from-sky-400 to-blue-600 text-white shadow-md shadow-sky-300 border border-sky-300";
+                activeNav.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            }
+
+            renderCurrentTab();
+        }
+
+        function renderCurrentTab() {
+            const viewport = document.getElementById('app-viewport');
+            switch (state.currentTab) {
+                case 'dasbor': renderDasbor(viewport); break;
+                case 'tambah_transaksi': renderTambahTransaksi(viewport); break;
+                case 'pekerjaan': renderPekerjaan(viewport); break;
+                case 'layanan': renderLayanan(viewport); break;
+                case 'pelanggan': renderPelanggan(viewport); break;
+                case 'laporan': renderLaporan(viewport); break;
+                case 'pengaturan': renderPengaturan(viewport); break;
+            }
+            document.getElementById('header-outlet-name').textContent = state.outlet.name || 'LAUNDRY KU 3D';
+        }
+
+        function renderDasbor(container) {
+            // Calculations for today (excluding cancelled)
+            const validTxs = state.transactions.filter(t => t.jobStatus !== 'batal');
+            const todayTxs = validTxs.filter(t => isToday(t.date));
+
+            // Omset Hari Ini = sum of paid DP or Lunas amounts today
+            const omsetHariIni = todayTxs.reduce((sum, t) => sum + (Number(t.paid) || 0), 0);
+            
+            // Transaksi Hari Ini = accumulative total transactions value created today
+            const totalTransaksiHariIni = todayTxs.reduce((sum, t) => sum + (Number(t.total) || 0), 0);
+
+            // Piutang Hari Ini = sum of remaining unpaid balance for active transactions
+            const piutangHariIni = validTxs.reduce((sum, t) => sum + (Number(t.remaining) || 0), 0);
+
+            // Job Status counts
+            const countByStatus = (status) => state.transactions.filter(t => t.jobStatus === status).length;
+
+            container.innerHTML = `
+                <!-- TOP REVENUE SUMMARY (2 SQUARE BOXES SIDE BY SIDE) -->
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                    <!-- Omset Hari Ini -->
+                    <div onclick="showFilterDetailModal('omset_today')" class="card-3d p-4 flex flex-col justify-between cursor-pointer border-l-4 border-l-emerald-500 hover:scale-[1.02] transition-transform">
+                        <div>
+                            <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold text-sm mb-2">💰</div>
+                            <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Omset Hari Ini</p>
+                        </div>
+                        <p class="text-base font-extrabold text-emerald-600 mt-2 tracking-tight">${formatRp(omsetHariIni)}</p>
+                    </div>
+
+                    <!-- Transaksi Hari Ini -->
+                    <div onclick="showFilterDetailModal('transaksi_today')" class="card-3d p-4 flex flex-col justify-between cursor-pointer border-l-4 border-l-sky-500 hover:scale-[1.02] transition-transform">
+                        <div>
+                            <div class="w-8 h-8 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center font-bold text-sm mb-2">📑</div>
+                            <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Transaksi Hari Ini</p>
+                        </div>
+                        <p class="text-base font-extrabold text-sky-600 mt-2 tracking-tight">${formatRp(totalTransaksiHariIni)}</p>
+                    </div>
+                </div>
+
+                <!-- PIUTANG HARI INI (RECTANGLE BOX BELOW) -->
+                <div onclick="showFilterDetailModal('piutang_today')" class="card-3d p-4 mb-4 cursor-pointer border-l-4 border-l-amber-500 hover:scale-[1.01] transition-transform flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-xl font-bold">⚠️</div>
+                        <div>
+                            <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Piutang / Sisa DP Hari Ini</p>
+                            <p class="text-lg font-extrabold text-amber-600 tracking-tight">${formatRp(piutangHariIni)}</p>
+                        </div>
+                    </div>
+                    <span class="text-slate-400 text-xs font-bold">Detail ➔</span>
+                </div>
+
+                <!-- ADD NEW TRANSACTION BUTTON -->
+                <button onclick="switchTab('tambah_transaksi')" class="btn-3d w-full py-3.5 px-4 mb-5 flex items-center justify-center gap-2 text-sm tracking-wide">
+                    <span class="text-xl">➕</span> Tambah Transaksi Baru
+                </button>
+
+                <!-- NOTIFIKASI PEKERJAAN (AKSI Cepat SMALL BOXES) -->
+                <div class="card-3d p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-extrabold text-xs uppercase text-slate-600 tracking-wider">Notifikasi Pekerjaan</h3>
+                        <span class="text-[10px] bg-sky-100 text-sky-700 font-bold px-2 py-0.5 rounded-full">Realtime</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-5 gap-1.5">
+                        <button onclick="goToJobFilter('antrian')" class="p-2 rounded-xl bg-sky-50 border border-sky-200 text-center flex flex-col items-center justify-center active:scale-95 transition-all">
+                            <span class="text-sm">⏳</span>
+                            <span class="text-[10px] font-bold text-sky-700 mt-1">Antrian</span>
+                            <span class="text-[11px] font-extrabold text-slate-800 bg-white px-1.5 py-0.2 rounded-md shadow-sm mt-0.5">${countByStatus('antrian')}</span>
+                        </button>
+                        <button onclick="goToJobFilter('proses')" class="p-2 rounded-xl bg-amber-50 border border-amber-200 text-center flex flex-col items-center justify-center active:scale-95 transition-all">
+                            <span class="text-sm">🔄</span>
+                            <span class="text-[10px] font-bold text-amber-700 mt-1">Proses</span>
+                            <span class="text-[11px] font-extrabold text-slate-800 bg-white px-1.5 py-0.2 rounded-md shadow-sm mt-0.5">${countByStatus('proses')}</span>
+                        </button>
+                        <button onclick="goToJobFilter('siap ambil')" class="p-2 rounded-xl bg-purple-50 border border-purple-200 text-center flex flex-col items-center justify-center active:scale-95 transition-all">
+                            <span class="text-sm">✨</span>
+                            <span class="text-[10px] font-bold text-purple-700 mt-1">Siap</span>
+                            <span class="text-[11px] font-extrabold text-slate-800 bg-white px-1.5 py-0.2 rounded-md shadow-sm mt-0.5">${countByStatus('siap ambil')}</span>
+                        </button>
+                        <button onclick="goToJobFilter('selesai')" class="p-2 rounded-xl bg-emerald-50 border border-emerald-200 text-center flex flex-col items-center justify-center active:scale-95 transition-all">
+                            <span class="text-sm">✅</span>
+                            <span class="text-[10px] font-bold text-emerald-700 mt-1">Selesai</span>
+                            <span class="text-[11px] font-extrabold text-slate-800 bg-white px-1.5 py-0.2 rounded-md shadow-sm mt-0.5">${countByStatus('selesai')}</span>
+                        </button>
+                        <button onclick="goToJobFilter('batal')" class="p-2 rounded-xl bg-rose-50 border border-rose-200 text-center flex flex-col items-center justify-center active:scale-95 transition-all">
+                            <span class="text-sm">❌</span>
+                            <span class="text-[10px] font-bold text-rose-700 mt-1">Batal</span>
+                            <span class="text-[11px] font-extrabold text-slate-800 bg-white px-1.5 py-0.2 rounded-md shadow-sm mt-0.5">${countByStatus('batal')}</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function goToJobFilter(statusKey) {
+            state.selectedJobFilter = statusKey;
+            switchTab('pekerjaan');
+        }
+
+        let newTxState = {
+            customerName: '',
+            customerPhone: '',
+            cart: [],
+            paymentMethod: 'Tunai',
+            paymentStatus: 'Belum Lunas', // Belum Lunas active first
+            dpAmount: 0,
+            cashGiven: 0,
+            jobStatus: 'antrian' // antrian active first
+        };
+
+        function renderTambahTransaksi(container) {
+            const calculateTotals = () => {
+                const total = newTxState.cart.reduce((s, i) => s + (i.price * i.qty), 0);
+                let remaining = total;
+                let change = 0;
+
+                if (newTxState.paymentStatus === 'Lunas') {
+                    remaining = 0;
+                    if (newTxState.cashGiven > total) {
+                        change = newTxState.cashGiven - total;
+                    }
+                } else if (newTxState.paymentStatus === 'DP') {
+                    remaining = Math.max(0, total - newTxState.dpAmount);
+                    if (newTxState.dpAmount > total) {
+                        change = newTxState.dpAmount - total;
+                        remaining = 0;
+                    }
+                }
+                return { total, remaining, change };
+            };
+
+            const totals = calculateTotals();
+
+            container.innerHTML = `
+                <div class="card-3d p-4 mb-4">
+                    <h2 class="font-extrabold text-sm text-slate-700 uppercase tracking-wider mb-3">Form Tambah Transaksi</h2>
+
+                    <!-- CUSTOMER SEARCH/INPUT BOX (HIDDEN SELECT LIST BY DEFAULT) -->
+                    <div class="mb-3">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Nama Pelanggan</label>
+                        <div class="relative">
+                            <input type="text" id="input-customer-name" value="${newTxState.customerName}" placeholder="Ketik nama pelanggan..." 
+                                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold focus:outline-none focus:border-sky-500"
+                                oninput="onCustomerInput(this.value)">
+                            <div id="customer-dropdown" class="absolute left-0 right-0 top-full mt-1 bg-white border border-sky-100 rounded-xl shadow-xl z-30 hidden max-h-36 overflow-y-auto"></div>
+                        </div>
+                    </div>
+
+                    <!-- SERVICE SELECTOR SEARCH BOX (HIDDEN SERVICE LIST BY DEFAULT) -->
+                    <div class="mb-3">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Pilih Layanan</label>
+                        <div class="relative">
+                            <input type="text" id="input-service-search" placeholder="Cari layanan (A-Z)..." 
+                                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold focus:outline-none focus:border-sky-500"
+                                onfocus="showServiceDropdown()" oninput="filterServiceDropdown(this.value)">
+                            <div id="service-dropdown" class="absolute left-0 right-0 top-full mt-1 bg-white border border-sky-100 rounded-xl shadow-xl z-30 hidden max-h-48 overflow-y-auto p-1"></div>
+                        </div>
+                    </div>
+
+                    <!-- CART ITEMS LIST -->
+                    <div class="mb-4">
+                        <p class="text-xs font-bold text-slate-600 mb-2">Item Layanan Terpilih:</p>
+                        ${newTxState.cart.length === 0 ? `
+                            <div class="p-3 rounded-xl border border-dashed border-slate-200 text-center text-slate-400 text-xs font-semibold">
+                                Belum ada layanan ditambahkan
+                            </div>
+                        ` : `
+                            <div class="space-y-2">
+                                ${newTxState.cart.map((item, idx) => `
+                                    <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-100 text-xs">
+                                        <div>
+                                            <p class="font-bold text-slate-800">${item.serviceName}</p>
+                                            <p class="text-[10px] text-slate-500">${formatRp(item.price)} / unit</p>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <input type="number" min="0.5" step="0.5" value="${item.qty}" 
+                                                class="w-16 px-2 py-1 bg-white border border-slate-200 rounded-lg text-center font-bold text-xs"
+                                                onchange="updateCartQty(${idx}, this.value)">
+                                            <span class="font-extrabold text-sky-700">${formatRp(item.price * item.qty)}</span>
+                                            <button onclick="removeCartItem(${idx})" class="text-rose-500 font-bold px-1.5 py-0.5 hover:bg-rose-50 rounded-md">✕</button>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `}
+                    </div>
+
+                    <!-- PAYMENT SECTION -->
+                    <div class="border-t border-slate-100 pt-3 mb-3">
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">Metode Pembayaran</label>
+                        <div class="grid grid-cols-5 gap-1 mb-3">
+                            ${['Tunai', 'Transfer', 'Shopee', 'DANA', 'GoPay'].map(m => `
+                                <button onclick="setTxPaymentMethod('${m}')" class="py-1.5 px-1 rounded-xl text-[10px] font-bold transition-all ${
+                                    newTxState.paymentMethod === m 
+                                    ? 'bg-sky-500 text-white shadow-sm shadow-sky-300' 
+                                    : 'bg-slate-100 text-slate-600'
+                                }">${m}</button>
+                            `).join('')}
+                        </div>
+
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">Status Pembayaran</label>
+                        <div class="grid grid-cols-3 gap-2 mb-3">
+                            ${['Belum Lunas', 'DP', 'Lunas'].map(s => `
+                                <button onclick="setTxPaymentStatus('${s}')" class="py-2 rounded-xl text-xs font-bold transition-all ${
+                                    newTxState.paymentStatus === s 
+                                    ? 'bg-sky-600 text-white shadow-sm' 
+                                    : 'bg-slate-100 text-slate-600'
+                                }">${s}</button>
+                            `).join('')}
+                        </div>
+
+                        ${newTxState.paymentStatus === 'DP' ? `
+                            <div class="mb-3 p-3 bg-amber-50 rounded-xl border border-amber-200">
+                                <label class="block text-[11px] font-bold text-amber-800 mb-1">Jumlah Bayar DP (Rp)</label>
+                                <input type="number" value="${newTxState.dpAmount}" oninput="newTxState.dpAmount = Number(this.value); renderTambahTransaksi(document.getElementById('app-viewport'));"
+                                    class="w-full px-3 py-2 bg-white border border-amber-300 rounded-lg font-bold text-xs">
+                            </div>
+                        ` : ''}
+
+                        ${newTxState.paymentStatus === 'Lunas' ? `
+                            <div class="mb-3 p-3 bg-emerald-50 rounded-xl border border-emerald-200">
+                                <label class="block text-[11px] font-bold text-emerald-800 mb-1">Uang Diterima (Rp)</label>
+                                <input type="number" value="${newTxState.cashGiven}" oninput="newTxState.cashGiven = Number(this.value); renderTambahTransaksi(document.getElementById('app-viewport'));"
+                                    class="w-full px-3 py-2 bg-white border border-emerald-300 rounded-lg font-bold text-xs">
+                            </div>
+                        ` : ''}
+
+                        <!-- RECAP SUMMARY BOX -->
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1">
+                            <div class="flex justify-between font-bold text-slate-700">
+                                <span>TOTAL TRANSAKSI:</span>
+                                <span>${formatRp(totals.total)}</span>
+                            </div>
+                            <div class="flex justify-between font-bold text-amber-700">
+                                <span>SISA TAGIHAN:</span>
+                                <span>${formatRp(totals.remaining)}</span>
+                            </div>
+                            ${totals.change > 0 ? `
+                                <div class="flex justify-between font-extrabold text-emerald-600">
+                                    <span>KEMBALIAN:</span>
+                                    <span>${formatRp(totals.change)}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+
+                    <!-- STATUS PEKERJAAN INITIAL SELECTION -->
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">Status Pekerjaan Awal</label>
+                        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                            ${['antrian', 'proses', 'siap ambil', 'selesai'].map(st => `
+                                <button onclick="newTxState.jobStatus = '${st}'; renderTambahTransaksi(document.getElementById('app-viewport'));" class="px-3 py-1.5 rounded-xl text-[11px] font-bold capitalize transition-all ${
+                                    newTxState.jobStatus === st ? 'bg-sky-500 text-white shadow-sm' : 'bg-slate-100 text-slate-600'
+                                }">${st}</button>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- ACTION BUTTONS -->
+                    <div class="flex gap-2">
+                        <button onclick="submitNewTransaction()" class="btn-3d flex-1 py-3 text-xs tracking-wide">
+                            💾 Simpan Transaksi
+                        </button>
+                        <button onclick="resetNewTxForm()" class="btn-3d-secondary px-4 py-3 text-xs font-bold rounded-2xl">
+                            Batal
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        /* Customer search logic */
+        function onCustomerInput(val) {
+            newTxState.customerName = val;
+            const dropdown = document.getElementById('customer-dropdown');
+            if (!val.trim()) {
+                dropdown.classList.add('hidden');
+                return;
+            }
+            const matches = state.customers.filter(c => c.name.toLowerCase().includes(val.toLowerCase()));
+            if (matches.length > 0) {
+                dropdown.innerHTML = matches.map(c => `
+                    <div onclick="selectCustomer('${c.name}', '${c.phone}')" class="p-2.5 hover:bg-sky-50 text-xs font-bold text-slate-700 cursor-pointer border-b border-slate-50">
+                        👤 ${c.name} ${c.phone ? `<span class="text-[10px] text-slate-400">(${c.phone})</span>` : ''}
+                    </div>
+                `).join('');
+                dropdown.classList.remove('hidden');
+            } else {
+                dropdown.innerHTML = `<div class="p-2.5 text-[11px] text-slate-400 italic">Gunakan nama baru "${val}"</div>`;
+                dropdown.classList.remove('hidden');
+            }
+        }
+
+        function selectCustomer(name, phone) {
+            newTxState.customerName = name;
+            newTxState.customerPhone = phone || '';
+            document.getElementById('input-customer-name').value = name;
+            document.getElementById('customer-dropdown').classList.add('hidden');
+        }
+
+        /* Service search & dropdown logic */
+        function showServiceDropdown() {
+            filterServiceDropdown('');
+        }
+
+        function filterServiceDropdown(query) {
+            const dropdown = document.getElementById('service-dropdown');
+            const sorted = [...state.services].sort((a,b) => a.name.localeCompare(b.name));
+            const filtered = sorted.filter(s => s.name.toLowerCase().includes(query.toLowerCase()));
+
+            if (filtered.length > 0) {
+                dropdown.innerHTML = filtered.map(s => `
+                    <div onclick="addServiceToCart('${s.id}')" class="p-2 hover:bg-sky-50 rounded-lg cursor-pointer flex justify-between items-center text-xs">
+                        <div>
+                            <p class="font-bold text-slate-800">${s.name}</p>
+                            <p class="text-[10px] text-slate-400">${s.category} • ${s.est}</p>
+                        </div>
+                        <span class="font-bold text-sky-600">${formatRp(s.price)}/${s.unit}</span>
+                    </div>
+                `).join('');
+                dropdown.classList.remove('hidden');
+            } else {
+                dropdown.classList.add('hidden');
+            }
+        }
+
+        function addServiceToCart(serviceId) {
+            const svc = state.services.find(s => s.id === serviceId);
+            if (!svc) return;
+            const existing = newTxState.cart.find(i => i.serviceId === serviceId);
+            if (existing) {
+                existing.qty += 1;
+            } else {
+                newTxState.cart.push({
+                    serviceId: svc.id,
+                    serviceName: svc.name,
+                    qty: svc.minWeight || 1,
+                    price: svc.price
+                });
+            }
+            document.getElementById('service-dropdown').classList.add('hidden');
+            document.getElementById('input-service-search').value = '';
+            renderTambahTransaksi(document.getElementById('app-viewport'));
+        }
+
+        function updateCartQty(index, qty) {
+            newTxState.cart[index].qty = Math.max(0.1, Number(qty) || 1);
+            renderTambahTransaksi(document.getElementById('app-viewport'));
+        }
+
+        function removeCartItem(index) {
+            newTxState.cart.splice(index, 1);
+            renderTambahTransaksi(document.getElementById('app-viewport'));
+        }
+
+        function setTxPaymentMethod(method) {
+            newTxState.paymentMethod = method;
+            renderTambahTransaksi(document.getElementById('app-viewport'));
+        }
+
+        function setTxPaymentStatus(status) {
+            newTxState.paymentStatus = status;
+            renderTambahTransaksi(document.getElementById('app-viewport'));
+        }
+
+        function resetNewTxForm() {
+            newTxState = {
+                customerName: '',
+                customerPhone: '',
+                cart: [],
+                paymentMethod: 'Tunai',
+                paymentStatus: 'Belum Lunas',
+                dpAmount: 0,
+                cashGiven: 0,
+                jobStatus: 'antrian'
+            };
+            renderTambahTransaksi(document.getElementById('app-viewport'));
+        }
+
+        function submitNewTransaction() {
+            if (!newTxState.customerName.trim()) {
+                showToast("Harap isi nama pelanggan!", "danger");
+                return;
+            }
+            if (newTxState.cart.length === 0) {
+                showToast("Pilih minimal 1 layanan!", "danger");
+                return;
+            }
+
+            // Auto add customer if not exists
+            const existingCust = state.customers.find(c => c.name.toLowerCase() === newTxState.customerName.toLowerCase());
+            if (!existingCust) {
+                state.customers.push({
+                    id: 'C' + Date.now(),
+                    name: newTxState.customerName,
+                    phone: newTxState.customerPhone
+                });
+            }
+
+            const total = newTxState.cart.reduce((s, i) => s + (i.price * i.qty), 0);
+            let paid = 0;
+            let remaining = total;
+            let change = 0;
+
+            if (newTxState.paymentStatus === 'Lunas') {
+                paid = total;
+                remaining = 0;
+                change = Math.max(0, newTxState.cashGiven - total);
+            } else if (newTxState.paymentStatus === 'DP') {
+                paid = newTxState.dpAmount;
+                remaining = Math.max(0, total - paid);
+                if (paid > total) {
+                    change = paid - total;
+                    remaining = 0;
+                }
+            }
+
+            const newTx = {
+                id: String(Math.floor(10000000 + Math.random() * 90000000)),
+                date: new Date().toISOString(),
+                finishDate: new Date(Date.now() + 86400000).toISOString(),
+                customerName: newTxState.customerName,
+                customerPhone: newTxState.customerPhone,
+                items: [...newTxState.cart],
+                total: total,
+                paid: paid,
+                remaining: remaining,
+                change: change,
+                paymentMethod: newTxState.paymentMethod,
+                paymentStatus: newTxState.paymentStatus,
+                jobStatus: newTxState.jobStatus,
+                cashier: state.outlet.cashier || 'Admin'
+            };
+
+            state.transactions.unshift(newTx);
+            autoSaveAndSync();
+            showToast("Transaksi berhasil disimpan!");
+            resetNewTxForm();
+            switchTab('pekerjaan');
+        }
+
+        function renderPekerjaan(container) {
+            const statuses = ['semua', 'antrian', 'proses', 'siap ambil', 'selesai', 'batal'];
+            let filtered = state.transactions;
+            if (state.selectedJobFilter !== 'semua') {
+                filtered = state.transactions.filter(t => t.jobStatus === state.selectedJobFilter);
+            }
+
+            container.innerHTML = `
+                <!-- FILTER TABS HORIZONTAL -->
+                <div class="card-3d p-2 mb-4 overflow-x-auto no-scrollbar flex gap-1.5">
+                    ${statuses.map(st => `
+                        <button onclick="state.selectedJobFilter = '${st}'; renderPekerjaan(document.getElementById('app-viewport'));" 
+                            class="px-3.5 py-2 rounded-xl text-xs font-bold capitalize whitespace-nowrap transition-all ${
+                                state.selectedJobFilter === st ? 'bg-sky-500 text-white shadow-sm' : 'bg-slate-100 text-slate-600'
+                            }">
+                            ${st} (${st === 'semua' ? state.transactions.length : state.transactions.filter(t => t.jobStatus === st).length})
+                        </button>
+                    `).join('')}
+                </div>
+
+                <!-- TRANSACTION CARDS LIST -->
+                <div class="space-y-3">
+                    ${filtered.length === 0 ? `
+                        <div class="card-3d p-6 text-center text-slate-400 text-xs font-bold">
+                            Tidak ada pekerjaan dalam status ini.
+                        </div>
+                    ` : filtered.map(tx => renderTransactionCardHtml(tx)).join('')}
+                </div>
+            `;
+        }
+
+        function renderTransactionCardHtml(tx) {
+            const statusColors = {
+                'antrian': 'bg-sky-100 text-sky-700 border-sky-200',
+                'proses': 'bg-amber-100 text-amber-700 border-amber-200',
+                'siap ambil': 'bg-purple-100 text-purple-700 border-purple-200',
+                'selesai': 'bg-emerald-100 text-emerald-700 border-emerald-200',
+                'batal': 'bg-rose-100 text-rose-700 border-rose-200'
+            };
+
+            return `
+                <div class="card-3d p-4 border-l-4 ${tx.jobStatus === 'batal' ? 'border-l-rose-500 opacity-75' : 'border-l-sky-500'}">
+                    <div class="flex items-center justify-between mb-2">
+                        <div>
+                            <span class="text-[10px] font-extrabold text-slate-400">#${tx.id}</span>
+                            <h3 class="font-extrabold text-sm text-slate-800">${tx.customerName}</h3>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold border ${statusColors[tx.jobStatus]} capitalize">
+                            ${tx.jobStatus}
+                        </span>
+                    </div>
+
+                    <p class="text-[11px] text-slate-500 mb-2">
+                        📅 ${formatDateReadable(tx.date)}
+                    </p>
+
+                    <!-- ITEMS SUMMARY -->
+                    <div class="bg-slate-50 rounded-xl p-2.5 mb-3 space-y-1">
+                        ${tx.items.map(i => `
+                            <div class="flex justify-between text-xs font-semibold text-slate-700">
+                                <span>${i.serviceName} (${i.qty}x)</span>
+                                <span>${formatRp(i.price * i.qty)}</span>
+                            </div>
+                        `).join('')}
+                        <div class="border-t border-slate-200 pt-1 flex justify-between font-extrabold text-xs">
+                            <span>Total (${tx.paymentStatus}):</span>
+                            <span class="text-sky-700">${formatRp(tx.total)}</span>
+                        </div>
+                        ${tx.remaining > 0 ? `
+                            <div class="flex justify-between font-bold text-[11px] text-amber-600">
+                                <span>Sisa Tagihan:</span>
+                                <span>${formatRp(tx.remaining)}</span>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <!-- ACTION BUTTONS -->
+                    <div class="flex items-center justify-between gap-1 overflow-x-auto no-scrollbar pt-1">
+                        <button onclick="advanceJobStatus('${tx.id}')" class="btn-3d text-[10px] px-3 py-1.5 flex items-center gap-1">
+                            🔄 Proses Berikutnya
+                        </button>
+                        <button onclick="openEditTransactionModal('${tx.id}')" class="btn-3d-secondary text-[10px] px-2.5 py-1.5 font-bold rounded-xl">
+                            ✏️ Edit
+                        </button>
+                        <button onclick="showPrintNotaModal('${tx.id}')" class="btn-3d-secondary text-[10px] px-2.5 py-1.5 font-bold rounded-xl">
+                            🖨️ Cetak
+                        </button>
+                        <button onclick="shareNotaUniversal('${tx.id}')" class="btn-3d-secondary text-[10px] px-2.5 py-1.5 font-bold rounded-xl">
+                            📲 Share
+                        </button>
+                        ${tx.jobStatus !== 'batal' ? `
+                            <button onclick="cancelTransaction('${tx.id}')" class="btn-3d-danger text-[10px] px-2 py-1.5 font-bold rounded-xl">
+                                🚫 Batal
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function advanceJobStatus(txId) {
+            const tx = state.transactions.find(t => t.id === txId);
+            if (!tx) return;
+            const flow = ['antrian', 'proses', 'siap ambil', 'selesai'];
+            const currentIdx = flow.indexOf(tx.jobStatus);
+            if (currentIdx !== -1 && currentIdx < flow.length - 1) {
+                tx.jobStatus = flow[currentIdx + 1];
+                autoSaveAndSync();
+                showToast(`Status diubah ke ${tx.jobStatus}`);
+                renderCurrentTab();
+            } else {
+                showToast("Pekerjaan sudah selesai / berada di tahap akhir!");
+            }
+        }
+
+        function cancelTransaction(txId) {
+            const tx = state.transactions.find(t => t.id === txId);
+            if (tx) {
+                tx.jobStatus = 'batal';
+                autoSaveAndSync();
+                showToast("Transaksi telah dibatalkan", "danger");
+                renderCurrentTab();
+            }
+        }
+
+        /* Edit Transaction Modal */
+        function openEditTransactionModal(txId) {
+            const tx = state.transactions.find(t => t.id === txId);
+            if (!tx) return;
+
+            openModal(`
+                <h3 class="font-extrabold text-sm text-slate-800 mb-3">Edit Detail Transaksi #${tx.id}</h3>
+                <div class="space-y-3 text-xs">
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">Nama Pelanggan</label>
+                        <input type="text" id="edit-cust-name" value="${tx.customerName}" class="w-full px-3 py-2 border rounded-xl font-bold">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">Tanggal Transaksi</label>
+                        <input type="datetime-local" id="edit-tx-date" value="${tx.date.substring(0,16)}" class="w-full px-3 py-2 border rounded-xl font-bold">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">Bayar DP / Tambahan Bayar (Rp)</label>
+                        <input type="number" id="edit-tx-paid" value="${tx.paid}" class="w-full px-3 py-2 border rounded-xl font-bold">
+                    </div>
+                    <div class="flex gap-2 pt-2">
+                        <button onclick="saveEditedTransaction('${tx.id}')" class="btn-3d flex-1 py-2.5 text-xs">Simpan Perubahan</button>
+                        <button onclick="closeModal()" class="btn-3d-secondary px-4 py-2.5 text-xs">Batal</button>
+                    </div>
+                </div>
+            `);
+        }
+
+        function saveEditedTransaction(txId) {
+            const tx = state.transactions.find(t => t.id === txId);
+            if (!tx) return;
+
+            tx.customerName = document.getElementById('edit-cust-name').value;
+            tx.date = new Date(document.getElementById('edit-tx-date').value).toISOString();
+            const newPaid = Number(document.getElementById('edit-tx-paid').value) || 0;
+            
+            tx.paid = newPaid;
+            if (tx.paid >= tx.total) {
+                tx.remaining = 0;
+                tx.paymentStatus = 'Lunas';
+                tx.change = tx.paid - tx.total;
+            } else if (tx.paid > 0) {
+                tx.remaining = tx.total - tx.paid;
+                tx.paymentStatus = 'DP';
+                tx.change = 0;
+            } else {
+                tx.remaining = tx.total;
+                tx.paymentStatus = 'Belum Lunas';
+                tx.change = 0;
+            }
+
+            autoSaveAndSync();
+            closeModal();
+            showToast("Detail transaksi diperbarui!");
+            renderCurrentTab();
+        }
+
+        function renderLayanan(container) {
+            container.innerHTML = `
+                <div class="card-3d p-4 mb-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="font-extrabold text-sm text-slate-700 uppercase tracking-wider">Daftar Layanan</h2>
+                        <button onclick="openAddServiceModal()" class="btn-3d text-xs px-3 py-1.5 flex items-center gap-1">
+                            ➕ Tambah Layanan
+                        </button>
+                    </div>
+
+                    <div class="space-y-2.5">
+                        ${state.services.map(s => `
+                            <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
+                                <div>
+                                    <h4 class="font-extrabold text-xs text-slate-800">${s.name}</h4>
+                                    <p class="text-[10px] text-slate-400 font-bold">${s.category} • Satuan: ${s.unit} • Est: ${s.est}</p>
+                                    <p class="text-xs font-extrabold text-sky-600 mt-1">${formatRp(s.price)} / ${s.unit}</p>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <button onclick="showServiceDetailModal('${s.id}')" class="btn-3d-secondary text-[10px] px-2 py-1 font-bold rounded-lg">Detail</button>
+                                    <button onclick="openEditServiceModal('${s.id}')" class="btn-3d-secondary text-[10px] px-2 py-1 font-bold rounded-lg">Edit</button>
+                                    <button onclick="deleteService('${s.id}')" class="btn-3d-danger text-[10px] px-2 py-1 font-bold rounded-lg">Hapus</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function openAddServiceModal() {
+            openModal(`
+                <h3 class="font-extrabold text-sm text-slate-800 mb-3">Tambah Layanan Baru</h3>
+                <div class="space-y-2 text-xs">
+                    <input type="text" id="svc-name" placeholder="Nama Layanan" class="w-full p-2 border rounded-xl font-bold">
+                    <select id="svc-cat" class="w-full p-2 border rounded-xl font-bold">
+                        <option value="Kiloan">Kiloan</option>
+                        <option value="Satuan">Satuan</option>
+                        <option value="Express">Express</option>
+                        <option value="Threatment">Threatment</option>
+                    </select>
+                    <select id="svc-unit" class="w-full p-2 border rounded-xl font-bold">
+                        <option value="kg">kg</option>
+                        <option value="pcs">pcs</option>
+                        <option value="m²">m²</option>
+                        <option value="set">set</option>
+                    </select>
+                    <input type="text" id="svc-est" placeholder="Estimasi (mis. 1 Hari)" class="w-full p-2 border rounded-xl font-bold">
+                    <input type="number" id="svc-min" placeholder="Minimal Berat/Qty" value="1" class="w-full p-2 border rounded-xl font-bold">
+                    <input type="number" id="svc-price" placeholder="Harga per Satuan (Rp)" class="w-full p-2 border rounded-xl font-bold">
+                    <div class="flex gap-2 pt-2">
+                        <button onclick="saveNewService()" class="btn-3d flex-1 py-2 text-xs">Simpan</button>
+                        <button onclick="closeModal()" class="btn-3d-secondary px-3 py-2 text-xs">Batal</button>
+                    </div>
+                </div>
+            `);
+        }
+
+        function saveNewService() {
+            const name = document.getElementById('svc-name').value;
+            const price = Number(document.getElementById('svc-price').value);
+            if (!name || !price) {
+                showToast("Lengkapi nama dan harga layanan!", "danger");
+                return;
+            }
+            state.services.push({
+                id: 'S' + Date.now(),
+                name,
+                category: document.getElementById('svc-cat').value,
+                unit: document.getElementById('svc-unit').value,
+                est: document.getElementById('svc-est').value || '1 Hari',
+                minWeight: Number(document.getElementById('svc-min').value) || 1,
+                price
+            });
+            autoSaveAndSync();
+            closeModal();
+            showToast("Layanan ditambahkan!");
+            renderLayanan(document.getElementById('app-viewport'));
+        }
+
+        function deleteService(id) {
+            state.services = state.services.filter(s => s.id !== id);
+            autoSaveAndSync();
+            renderLayanan(document.getElementById('app-viewport'));
+            showToast("Layanan dihapus", "danger");
+        }
+
+        function showServiceDetailModal(svcId) {
+            const svc = state.services.find(s => s.id === svcId);
+            if (!svc) return;
+
+            // Summary transactions for this service
+            let totalUsage = 0;
+            let totalIncome = 0;
+            state.transactions.forEach(t => {
+                if (t.jobStatus === 'batal') return;
+                t.items.forEach(i => {
+                    if (i.serviceId === svcId) {
+                        totalUsage += i.qty;
+                        totalIncome += (i.qty * i.price);
+                    }
+                });
+            });
+
+            openModal(`
+                <h3 class="font-extrabold text-sm text-slate-800 mb-2">Detail Layanan: ${svc.name}</h3>
+                <div class="p-3 bg-slate-50 rounded-xl space-y-1.5 text-xs border mb-3">
+                    <p><b>Kategori:</b> ${svc.category}</p>
+                    <p><b>Harga:</b> ${formatRp(svc.price)} / ${svc.unit}</p>
+                    <p><b>Estimasi Waktu:</b> ${svc.est}</p>
+                    <p><b>Minimal Order:</b> ${svc.minWeight} ${svc.unit}</p>
+                </div>
+                <div class="p-3 bg-sky-50 rounded-xl space-y-1 text-xs border border-sky-200 mb-3">
+                    <p class="font-bold text-sky-800">Akumulasi Penggunaan:</p>
+                    <p>Total Diproses: <b>${totalUsage} ${svc.unit}</b></p>
+                    <p>Total Pendapatan: <b>${formatRp(totalIncome)}</b></p>
+                </div>
+                <button onclick="closeModal()" class="btn-3d w-full py-2 text-xs">Tutup</button>
+            `);
+        }
+
+        function renderPelanggan(container) {
+            container.innerHTML = `
+                <div class="card-3d p-4 mb-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="font-extrabold text-sm text-slate-700 uppercase tracking-wider">Database Pelanggan</h2>
+                        <button onclick="openAddCustomerModal()" class="btn-3d text-xs px-3 py-1.5 flex items-center gap-1">
+                            ➕ Tambah
+                        </button>
+                    </div>
+
+                    <div class="space-y-2">
+                        ${state.customers.map(c => `
+                            <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
+                                <div>
+                                    <h4 class="font-extrabold text-xs text-slate-800">👤 ${c.name}</h4>
+                                    <p class="text-[11px] text-slate-500 font-semibold">${c.phone || 'Tanpa No. Telp'}</p>
+                                </div>
+                                <div class="flex gap-1">
+                                    <button onclick="deleteCustomer('${c.id}')" class="btn-3d-danger text-[10px] px-2 py-1 font-bold rounded-lg">Hapus</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function openAddCustomerModal() {
+            openModal(`
+                <h3 class="font-extrabold text-sm text-slate-800 mb-3">Tambah Pelanggan Baru</h3>
+                <div class="space-y-2 text-xs">
+                    <input type="text" id="cust-name" placeholder="Nama Pelanggan *" class="w-full p-2 border rounded-xl font-bold">
+                    <input type="text" id="cust-phone" placeholder="No. Telp (Opsional)" class="w-full p-2 border rounded-xl font-bold">
+                    <div class="flex gap-2 pt-2">
+                        <button onclick="saveNewCustomer()" class="btn-3d flex-1 py-2 text-xs">Simpan</button>
+                        <button onclick="closeModal()" class="btn-3d-secondary px-3 py-2 text-xs">Batal</button>
+                    </div>
+                </div>
+            `);
+        }
+
+        function saveNewCustomer() {
+            const name = document.getElementById('cust-name').value;
+            if (!name) {
+                showToast("Nama pelanggan wajib diisi!", "danger");
+                return;
+            }
+            state.customers.push({
+                id: 'C' + Date.now(),
+                name,
+                phone: document.getElementById('cust-phone').value || ''
+            });
+            autoSaveAndSync();
+            closeModal();
+            showToast("Pelanggan ditambahkan!");
+            renderPelanggan(document.getElementById('app-viewport'));
+        }
+
+        function deleteCustomer(id) {
+            state.customers = state.customers.filter(c => c.id !== id);
+            autoSaveAndSync();
+            renderPelanggan(document.getElementById('app-viewport'));
+            showToast("Pelanggan dihapus", "danger");
+        }
+
+        let reportFilter = {
+            startDate: '',
+            endDate: '',
+            paymentMethod: 'semua',
+            paymentStatus: 'semua'
+        };
+
+        function renderLaporan(container) {
+            const applyReportFilters = (list) => {
+                return list.filter(t => {
+                    if (reportFilter.paymentMethod !== 'semua' && t.paymentMethod !== reportFilter.paymentMethod) return false;
+                    if (reportFilter.paymentStatus !== 'semua' && t.paymentStatus !== reportFilter.paymentStatus) return false;
+                    if (reportFilter.startDate) {
+                        if (new Date(t.date) < new Date(reportFilter.startDate)) return false;
+                    }
+                    if (reportFilter.endDate) {
+                        if (new Date(t.date) > new Date(reportFilter.endDate + 'T23:59:59')) return false;
+                    }
+                    return true;
+                });
+            };
+
+            const filteredTxs = applyReportFilters(state.transactions);
+            const validFiltered = filteredTxs.filter(t => t.jobStatus !== 'batal');
+
+            // Report Totals
+            const totalOmset = validFiltered.reduce((s, t) => s + (Number(t.paid) || 0), 0);
+            const totalTransaksiMasuk = validFiltered.reduce((s, t) => s + (Number(t.total) || 0), 0);
+            const totalLunas = validFiltered.filter(t => t.paymentStatus === 'Lunas').reduce((s, t) => s + (Number(t.total) || 0), 0);
+            const totalPiutang = validFiltered.reduce((s, t) => s + (Number(t.remaining) || 0), 0);
+            const totalBatal = filteredTxs.filter(t => t.jobStatus === 'batal').reduce((s, t) => s + (Number(t.total) || 0), 0);
+
+            container.innerHTML = `
+                <!-- FILTER BAR CARD -->
+                <div class="card-3d p-4 mb-4 space-y-2 text-xs">
+                    <h3 class="font-extrabold text-xs text-slate-700 uppercase tracking-wider mb-1">Filter Laporan</h3>
+                    
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block font-bold text-slate-500 text-[10px]">Dari Tgl</label>
+                            <input type="date" value="${reportFilter.startDate}" onchange="reportFilter.startDate = this.value; renderLaporan(document.getElementById('app-viewport'));" class="w-full p-1.5 border rounded-lg font-bold">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-500 text-[10px]">s/d Tgl</label>
+                            <input type="date" value="${reportFilter.endDate}" onchange="reportFilter.endDate = this.value; renderLaporan(document.getElementById('app-viewport'));" class="w-full p-1.5 border rounded-lg font-bold">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block font-bold text-slate-500 text-[10px]">Metode Bayar</label>
+                            <select onchange="reportFilter.paymentMethod = this.value; renderLaporan(document.getElementById('app-viewport'));" class="w-full p-1.5 border rounded-lg font-bold">
+                                <option value="semua">Semua Metode</option>
+                                <option value="Tunai" ${reportFilter.paymentMethod === 'Tunai' ? 'selected':''}>Tunai</option>
+                                <option value="Transfer" ${reportFilter.paymentMethod === 'Transfer' ? 'selected':''}>Transfer</option>
+                                <option value="Shopee" ${reportFilter.paymentMethod === 'Shopee' ? 'selected':''}>Shopee</option>
+                                <option value="DANA" ${reportFilter.paymentMethod === 'DANA' ? 'selected':''}>DANA</option>
+                                <option value="GoPay" ${reportFilter.paymentMethod === 'GoPay' ? 'selected':''}>GoPay</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-500 text-[10px]">Status Bayar</label>
+                            <select onchange="reportFilter.paymentStatus = this.value; renderLaporan(document.getElementById('app-viewport'));" class="w-full p-1.5 border rounded-lg font-bold">
+                                <option value="semua">Semua Status</option>
+                                <option value="Lunas" ${reportFilter.paymentStatus === 'Lunas' ? 'selected':''}>Lunas</option>
+                                <option value="DP" ${reportFilter.paymentStatus === 'DP' ? 'selected':''}>DP</option>
+                                <option value="Belum Lunas" ${reportFilter.paymentStatus === 'Belum Lunas' ? 'selected':''}>Belum Lunas</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- REPORT CARDS STACKED VERTICALLY -->
+                <div class="space-y-3">
+                    <div onclick="showReportDetailModal('omset')" class="card-3d p-4 cursor-pointer border-l-4 border-l-emerald-500 hover:scale-[1.01] transition-transform flex justify-between items-center">
+                        <div>
+                            <p class="text-[11px] font-extrabold text-slate-500 uppercase">Laporan Omset Terbayar</p>
+                            <p class="text-base font-extrabold text-emerald-600 tracking-tight">${formatRp(totalOmset)}</p>
+                        </div>
+                        <span class="text-xs text-slate-400 font-bold">Detail ➔</span>
+                    </div>
+
+                    <div onclick="showReportDetailModal('masuk')" class="card-3d p-4 cursor-pointer border-l-4 border-l-sky-500 hover:scale-[1.01] transition-transform flex justify-between items-center">
+                        <div>
+                            <p class="text-[11px] font-extrabold text-slate-500 uppercase">Laporan Transaksi Masuk</p>
+                            <p class="text-base font-extrabold text-sky-600 tracking-tight">${formatRp(totalTransaksiMasuk)}</p>
+                        </div>
+                        <span class="text-xs text-slate-400 font-bold">Detail ➔</span>
+                    </div>
+
+                    <div onclick="showReportDetailModal('lunas')" class="card-3d p-4 cursor-pointer border-l-4 border-l-teal-500 hover:scale-[1.01] transition-transform flex justify-between items-center">
+                        <div>
+                            <p class="text-[11px] font-extrabold text-slate-500 uppercase">Laporan Transaksi Lunas</p>
+                            <p class="text-base font-extrabold text-teal-600 tracking-tight">${formatRp(totalLunas)}</p>
+                        </div>
+                        <span class="text-xs text-slate-400 font-bold">Detail ➔</span>
+                    </div>
+
+                    <div onclick="showReportDetailModal('piutang')" class="card-3d p-4 cursor-pointer border-l-4 border-l-amber-500 hover:scale-[1.01] transition-transform flex justify-between items-center">
+                        <div>
+                            <p class="text-[11px] font-extrabold text-slate-500 uppercase">Laporan Piutang / Sisa DP</p>
+                            <p class="text-base font-extrabold text-amber-600 tracking-tight">${formatRp(totalPiutang)}</p>
+                        </div>
+                        <span class="text-xs text-slate-400 font-bold">Detail ➔</span>
+                    </div>
+
+                    <div onclick="showReportDetailModal('batal')" class="card-3d p-4 cursor-pointer border-l-4 border-l-rose-500 hover:scale-[1.01] transition-transform flex justify-between items-center">
+                        <div>
+                            <p class="text-[11px] font-extrabold text-slate-500 uppercase">Laporan Transaksi Batal</p>
+                            <p class="text-base font-extrabold text-rose-600 tracking-tight">${formatRp(totalBatal)}</p>
+                        </div>
+                        <span class="text-xs text-slate-400 font-bold">Detail ➔</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showReportDetailModal(type) {
+            let title = '';
+            let list = state.transactions;
+
+            if (type === 'omset') {
+                title = 'Detail Transaksi Terbayar (DP/Lunas)';
+                list = list.filter(t => t.jobStatus !== 'batal' && t.paid > 0);
+            } else if (type === 'masuk') {
+                title = 'Detail Semua Transaksi Masuk';
+                list = list.filter(t => t.jobStatus !== 'batal');
+            } else if (type === 'lunas') {
+                title = 'Detail Transaksi Lunas';
+                list = list.filter(t => t.jobStatus !== 'batal' && t.paymentStatus === 'Lunas');
+            } else if (type === 'piutang') {
+                title = 'Detail Transaksi Belum Lunas / Piutang';
+                list = list.filter(t => t.jobStatus !== 'batal' && t.remaining > 0);
+            } else if (type === 'batal') {
+                title = 'Detail Transaksi Batal';
+                list = list.filter(t => t.jobStatus === 'batal');
+            }
+
+            openModal(`
+                <h3 class="font-extrabold text-xs uppercase text-slate-800 mb-3">${title}</h3>
+                <div class="space-y-2 max-h-80 overflow-y-auto pr-1">
+                    ${list.length === 0 ? '<p class="text-xs text-slate-400 text-center">Tidak ada data transaksi</p>' : 
+                    list.map(t => `
+                        <div class="p-2.5 bg-slate-50 border rounded-xl text-xs space-y-1">
+                            <div class="flex justify-between font-bold">
+                                <span>#${t.id} - ${t.customerName}</span>
+                                <span>${formatRp(t.total)}</span>
+                            </div>
+                            <p class="text-[10px] text-slate-400">${formatDateReadable(t.date)} • ${t.paymentMethod} (${t.paymentStatus})</p>
+                        </div>
+                    `).join('')}
+                </div>
+                <button onclick="closeModal()" class="btn-3d w-full mt-3 py-2 text-xs">Tutup</button>
+            `);
+        }
+
+        function showFilterDetailModal(dashFilterType) {
+            if (dashFilterType === 'omset_today') {
+                showReportDetailModal('omset');
+            } else if (dashFilterType === 'transaksi_today') {
+                showReportDetailModal('masuk');
+            } else if (dashFilterType === 'piutang_today') {
+                showReportDetailModal('piutang');
+            }
+        }
+
+        const APP_SCRIPT_SINGLE_LINE = `function doGet(e){var p=PropertiesService.getScriptProperties();return ContentService.createTextOutput(p.getProperty('LAUNDRY_DATA')||'{"transactions":[],"services":[],"customers":[],"settings":{}}').setMimeType(ContentService.MimeType.JSON);} function doPost(e){var p=PropertiesService.getScriptProperties();p.setProperty('LAUNDRY_DATA',e.postData.contents);return ContentService.createTextOutput(JSON.stringify({status:'success'})).setMimeType(ContentService.MimeType.JSON);}`;
+
+        function renderPengaturan(container) {
+            container.innerHTML = `
+                <!-- OUTLET PROFILE CONFIG -->
+                <div class="card-3d p-4 mb-4 space-y-3 text-xs">
+                    <h3 class="font-extrabold text-xs text-slate-700 uppercase tracking-wider">Pengaturan Outlet</h3>
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">Nama Outlet</label>
+                        <input type="text" id="cfg-outlet-name" value="${state.outlet.name}" class="w-full p-2 border rounded-xl font-bold">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">Alamat Outlet</label>
+                        <input type="text" id="cfg-outlet-address" value="${state.outlet.address}" class="w-full p-2 border rounded-xl font-bold">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">No. Telp Outlet</label>
+                        <input type="text" id="cfg-outlet-phone" value="${state.outlet.phone}" class="w-full p-2 border rounded-xl font-bold">
+                    </div>
+                    <button onclick="saveOutletSettings()" class="btn-3d w-full py-2 text-xs">Simpan Profil Outlet</button>
+                </div>
+
+                <!-- NOTA PRINT TOGGLE CHECKBOXES -->
+                <div class="card-3d p-4 mb-4 space-y-2 text-xs">
+                    <h3 class="font-extrabold text-xs text-slate-700 uppercase tracking-wider mb-2">Pengaturan Cetak Nota</h3>
+                    ${Object.keys(state.printConfig).map(k => `
+                        <label class="flex items-center gap-2 cursor-pointer font-bold text-slate-700">
+                            <input type="checkbox" ${state.printConfig[k] ? 'checked':''} onchange="state.printConfig['${k}'] = this.checked; saveLocalData();" class="rounded">
+                            <span>Tampilkan ${k.replace('show','')}</span>
+                        </label>
+                    `).join('')}
+                    <div class="pt-2">
+                        <label class="block font-bold text-slate-600 mb-1">Pesan Footer Nota</label>
+                        <textarea id="cfg-footer-msg" rows="2" class="w-full p-2 border rounded-xl font-semibold">${state.outlet.footerMsg}</textarea>
+                    </div>
+                    <button onclick="showReceiptPreviewModal()" class="btn-3d-secondary w-full py-2 font-bold text-xs rounded-xl">👁️ Preview Nota</button>
+                </div>
+
+                <!-- GOOGLE APPS SCRIPT CLOUD STORAGE SYNC -->
+                <div class="card-3d p-4 mb-4 space-y-3 text-xs">
+                    <h3 class="font-extrabold text-xs text-slate-700 uppercase tracking-wider">Google Sheets Cloud Sync</h3>
+                    <p class="text-[11px] text-slate-500">Hubungkan ke Google Apps Script Web App untuk penyimpanan cloud otomatis gratis selamanya.</p>
+                    
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">URL Web App Apps Script</label>
+                        <input type="text" id="cfg-cloud-url" value="${state.cloudUrl}" placeholder="https://script.google.com/macros/s/.../exec" class="w-full p-2 border rounded-xl font-bold text-[11px]">
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button onclick="saveCloudUrlAndTest()" class="btn-3d flex-1 py-2 text-xs">Tes & Simpan Koneksi</button>
+                    </div>
+
+                    <div class="flex gap-2 pt-1">
+                        <button onclick="syncToCloudBackground()" class="btn-3d-secondary flex-1 py-2 font-bold text-xs rounded-xl">☁️ Unggah Ke Cloud</button>
+                        <button onclick="fetchFromCloudBackground()" class="btn-3d-secondary flex-1 py-2 font-bold text-xs rounded-xl">📥 Tarik Dari Cloud</button>
+                    </div>
+
+                    <!-- SINGLE LINE APPS SCRIPT CODE BOX -->
+                    <div class="pt-2">
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="font-bold text-slate-700 text-[11px]">Kode Google Apps Script (1 Baris):</label>
+                            <button onclick="copyAppsScriptCode()" class="text-[10px] bg-sky-500 text-white font-extrabold px-2 py-0.5 rounded-md">📋 Copy Script</button>
+                        </div>
+                        <input type="text" readonly value="${APP_SCRIPT_SINGLE_LINE}" id="script-code-input" class="w-full p-2 bg-slate-100 border text-[10px] font-mono rounded-lg">
+                    </div>
+                </div>
+
+                <!-- BACKUP RESTORE EXCEL -->
+                <div class="card-3d p-4 mb-4 space-y-2 text-xs">
+                    <h3 class="font-extrabold text-xs text-slate-700 uppercase tracking-wider mb-2">Backup & Export Data</h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="exportDataExcelCSV()" class="btn-3d-secondary py-2 font-bold rounded-xl">📊 Export Excel/CSV</button>
+                        <button onclick="downloadJsonBackup()" class="btn-3d-secondary py-2 font-bold rounded-xl">💾 Download JSON</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function saveOutletSettings() {
+            state.outlet.name = document.getElementById('cfg-outlet-name').value;
+            state.outlet.address = document.getElementById('cfg-outlet-address').value;
+            state.outlet.phone = document.getElementById('cfg-outlet-phone').value;
+            state.outlet.footerMsg = document.getElementById('cfg-footer-msg').value;
+            saveLocalData();
+            showToast("Profil outlet disimpan!");
+            renderCurrentTab();
+        }
+
+        function saveCloudUrlAndTest() {
+            const url = document.getElementById('cfg-cloud-url').value.trim();
+            state.cloudUrl = url;
+            saveLocalData();
+            fetchFromCloudBackground();
+            showToast("Mencoba koneksi cloud...");
+        }
+
+        function copyAppsScriptCode() {
+            const codeInput = document.getElementById('script-code-input');
+            codeInput.select();
+            document.execCommand('copy');
+            showToast("Kode script berhasil dicopy!");
+        }
+
+        function downloadJsonBackup() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
+            const dlAnchorElem = document.createElement('a');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", `Backup_Laundry_3D_${new Date().toISOString().substring(0,10)}.json`);
+            dlAnchorElem.click();
+        }
+
+        function exportDataExcelCSV() {
+            let csv = 'ID,Tanggal,Pelanggan,Total,Terbayar,Sisa,Metode,StatusBayar,StatusPekerjaan\n';
+            state.transactions.forEach(t => {
+                csv += `"${t.id}","${t.date}","${t.customerName}",${t.total},${t.paid},${t.remaining},"${t.paymentMethod}","${t.paymentStatus}","${t.jobStatus}"\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `Laporan_Transaksi_${new Date().toISOString().substring(0,10)}.csv`);
+            a.click();
+        }
+
+        function generateReceiptText(tx) {
+            return `LAUNDRY KU 3D
+Jl. Estetik No. 123
+--------------------------------
+Nota    : #${tx.id}
+Tgl     : ${formatDateReadable(tx.date)}
+Selesai : ${formatDateReadable(tx.finishDate)}
+Plg     : ${tx.customerName}
+Ksr     : ${tx.cashier || 'Admin Utama'}
+================================
+${tx.items.map(i => `${i.serviceName}\n  ${i.qty} x ${formatRp(i.price)} = ${formatRp(i.price * i.qty)}`).join('\n')}
+--------------------------------
+TOTAL       : ${formatRp(tx.total)}
+T'LAH DIBAYAR: ${formatRp(tx.paid)}
+SISA TAGIHAN: ${formatRp(tx.remaining)}
+STATUS      : ${tx.paymentStatus}
+--------------------------------
+${state.outlet.footerMsg || 'Terima Kasih!'}`;
+        }
+
+        function showPrintNotaModal(txId) {
+            const tx = state.transactions.find(t => t.id === txId) || state.transactions[0];
+            if (!tx) return;
+            const textNota = generateReceiptText(tx);
+
+            openModal(`
+                <h3 class="font-extrabold text-sm text-slate-800 mb-2">Pratinjau Struk / Nota</h3>
+                <pre class="bg-amber-50 p-3 rounded-xl border border-amber-200 text-[11px] font-mono leading-tight whitespace-pre-wrap mb-3 text-slate-800">${textNota}</pre>
+                
+                <div class="space-y-2">
+                    <button onclick="triggerBluetoothPrint()" class="btn-3d w-full py-2.5 text-xs flex items-center justify-center gap-2">
+                        📶 Cetak via Bluetooth Web API
+                    </button>
+                    <button onclick="closeModal()" class="btn-3d-secondary w-full py-2 text-xs">Tutup</button>
+                </div>
+            `);
+        }
+
+        function showReceiptPreviewModal() {
+            showPrintNotaModal(state.transactions[0]?.id);
+        }
+
+        async function triggerBluetoothPrint() {
+            if (navigator.bluetooth) {
+                try {
+                    showToast("Mencari perangkat Bluetooth Printer...");
+                    await navigator.bluetooth.requestDevice({
+                        acceptAllDevices: true
+                    });
+                    showToast("Terhubung ke Bluetooth Printer!");
+                } catch (e) {
+                    showToast("Koneksi Bluetooth dibatalkan / tidak didukung browser.", "danger");
+                }
+            } else {
+                showToast("Web Bluetooth API tidak didukung pada browser ini.", "danger");
+            }
+        }
+
+        async function shareNotaUniversal(txId) {
+            const tx = state.transactions.find(t => t.id === txId);
+            if (!tx) return;
+            const text = generateReceiptText(tx);
+
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: `Nota Laundry #${tx.id}`,
+                        text: text
+                    });
+                } catch (e) {
+                    console.log("Share skipped");
+                }
+            } else {
+                // Fallback copy to clipboard
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                showToast("Teks Nota berhasil disalin ke clipboard!");
+            }
+        }
+
+        window.onload = function() {
+            initLiveWallpaper();
+            loadLocalData();
+
+            // Set dynamic header date
+            const options = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' };
+            document.getElementById('header-date').textContent = new Date().toLocaleDateString('id-ID', options);
+
+            // Fetch cloud data automatically on open
+            fetchFromCloudBackground();
+
+            // Render default starting tab
+            switchTab('dasbor');
+        };
+    </script>
+</body>
+</html>
